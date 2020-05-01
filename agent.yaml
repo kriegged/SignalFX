@@ -1,0 +1,46 @@
+---
+# *Required* The access token for the org that you wish to send metrics to.
+signalFxAccessToken: {"#from": "/etc/signalfx/token"}
+ingestUrl: {"#from": "/etc/signalfx/ingest_url", default: "https://ingest.signalfx.com"}
+apiUrl: {"#from": "/etc/signalfx/api_url", default: "https://api.signalfx.com"}
+cluster: {"#from": "/etc/signalfx/cluster", optional: true}
+
+intervalSeconds: 10
+
+logging:
+  # Valid values are 'debug', 'info', 'warning', and 'error'
+  level: info
+
+# observers are what discover running services in the environment
+observers:
+ - type: host
+ - type: docker
+   useHostnameIfPresent: true
+   labelsToDimensions: &labelMap
+      com.amazonaws.ecs.cluster: ClusterName
+      com.amazonaws.ecs.container-name: container_spec_name
+      com.amazonaws.ecs.task-arn: ecs_task_arn
+      com.amazonaws.ecs.task-definition-family: ecs_task_group
+      com.amazonaws.ecs.task-definition-version: ecs_task_version
+
+monitors:
+ - {"#from": "/etc/signalfx/monitors/*.yaml", flatten: true, optional: true}
+ - type: cpu
+ - type: filesystems
+ - type: disk-io
+ - type: net-io
+ - type: load
+ - type: memory
+ - type: host-metadata
+ - type: processlist
+ - type: vmem
+ - type: docker-container-stats
+   enableExtraBlockIOMetrics: true
+   enableExtraCPUMetrics: true
+   enableExtraMemoryMetrics: true
+   enableExtraNetworkMetrics: true
+   dockerURL: tcp://localhost:2379
+   labelsToDimensions:
+      <<: *labelMap
+
+ - {"#from": "env:EXTRA_MONITOR_CONFIG", default: [], flatten: true}
